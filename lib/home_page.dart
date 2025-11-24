@@ -41,21 +41,27 @@ class _HomePageState extends State<HomePage> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: showFavoritesOnly ? Colors.amber : Colors.white24,
+                      color: showFavoritesOnly ? Colors.white54 : Colors.white24,
                       borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: showFavoritesOnly ? Colors.white54! : Colors.white54,
+                        width: 1.5,
+                      ),
                     ),
                     child: Row(
                       children: [
                         Icon(
                           showFavoritesOnly ? Icons.favorite : Icons.favorite_border,
-                          color: showFavoritesOnly ? Colors.amber : Colors.white,
+                          color: showFavoritesOnly ? Colors.white : Colors.white,
+                          size: 20,
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: 6),
                         Text(
                           'Favorites',
                           style: TextStyle(
-                            color: showFavoritesOnly ? Colors.amber : Colors.white,
+                            color: showFavoritesOnly ? Colors.white : Colors.white,
                             fontWeight: FontWeight.bold,
+                            fontSize: 13,
                           ),
                         ),
                       ],
