@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'crud_service.dart';
+import 'auth_service.dart';
+import 'login.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -11,9 +14,14 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final CrudService service = CrudService();
+  final AuthService authService = AuthService();
   final TextEditingController nameCtrl = TextEditingController();
   final TextEditingController qtyCtrl = TextEditingController();
   bool showFavoritesOnly = false;
+
+  String _getFirstName(String email) {
+    return email.split('@')[0].split('.')[0].toUpperCase();
+  }
 
   @override
   void dispose() {
@@ -33,6 +41,33 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: Colors.deepOrange,
         actions: [
           Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+            child: Center(
+              child: GestureDetector(
+                onTap: () async {
+                  await authService.signOut();
+                  if (mounted) {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => const LoginPage()),
+                    );
+                  }
+                },
+                child: Tooltip(
+                  message: 'Sign Out',
+                  child: Text(
+                    'Sign Out',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Padding(
             padding: const EdgeInsets.all(8.0),
             child: Center(
               child: GestureDetector(
@@ -45,7 +80,7 @@ class _HomePageState extends State<HomePage> {
                       color: showFavoritesOnly ? Colors.white54 : Colors.white24,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: showFavoritesOnly ? Colors.white54! : Colors.white54,
+                        color: showFavoritesOnly ? Colors.white54 : Colors.white54,
                         width: 1.5,
                       ),
                     ),
@@ -79,76 +114,112 @@ class _HomePageState extends State<HomePage> {
         child: const Icon(Icons.add, color: Colors.white),
         onPressed: () => openAddDialog(context),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: showFavoritesOnly ? service.getFavoriteItems() : service.getItems(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-          if (!snapshot.hasData) {
+      body: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, authSnapshot) {
+          if (!authSnapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final docs = snapshot.data!.docs;
+          final user = authSnapshot.data!;
+          final firstName = _getFirstName(user.email ?? '');
 
-          if (docs.isEmpty) {
-            return const Center(
-              child: Text(
-                "No items found",
-                style: TextStyle(fontSize: 18),
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Hey, $firstName!',
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
               ),
-            );
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(8),
-            itemCount: docs.length,
-            itemBuilder: (context, index) {
-              final item = docs[index];
-              final data = item.data() as Map<String, dynamic>;
-              return Card(
-                elevation: 3,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                margin: const EdgeInsets.symmetric(vertical: 6),
-                child: ListTile(
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  title: Text(
-                    data['name'] ?? '',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text(
-                    "Quantity ${data['quantity'] ?? 0}",
-                    style: const TextStyle(fontSize: 14, color: Colors.grey),
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          (data['favorite'] ?? false) ? Icons.favorite : Icons.favorite_border,
-                          color: (data['favorite'] ?? false) ? Colors.red : Colors.grey,
-                        ),
-                        onPressed: () => service.toggleFavorite(item.id, data['favorite'] ?? false),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.orange),
-                        onPressed: () => openEditDialog(context, item),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _confirmDelete(context, item.id),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
+              Expanded(
+                child: _buildItemsList(),
+              ),
+            ],
           );
         },
       ),
+    );
+  }
+
+  Widget _buildItemsList() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: showFavoritesOnly ? service.getFavoriteItems() : service.getItems(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final docs = snapshot.data!.docs;
+
+        if (docs.isEmpty) {
+          return const Center(
+            child: Text(
+              "No items found",
+              style: TextStyle(fontSize: 18),
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(8),
+          itemCount: docs.length,
+          itemBuilder: (context, index) {
+            final item = docs[index];
+            final data = item.data() as Map<String, dynamic>;
+            return Card(
+              elevation: 3,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              margin: const EdgeInsets.symmetric(vertical: 6),
+              child: ListTile(
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                title: Text(
+                  data['name'] ?? '',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                subtitle: Text(
+                  "Quantity ${data['quantity'] ?? 0}",
+                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        (data['favorite'] ?? false) ? Icons.favorite : Icons.favorite_border,
+                        color: (data['favorite'] ?? false) ? Colors.red : Colors.grey,
+                      ),
+                      onPressed: () => service.toggleFavorite(item.id, data['favorite'] ?? false),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: Colors.orange),
+                      onPressed: () => openEditDialog(context, item),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: () => _confirmDelete(context, item.id),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
