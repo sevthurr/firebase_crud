@@ -25,11 +25,12 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey,
+      backgroundColor: Colors.orange[50],
       appBar: AppBar(
-        title: const Text('Firebase Lastname'),
-        centerTitle: true,
-        backgroundColor: Colors.teal,
+        title: const Text('Firebase Mayugba',
+          style: TextStyle(color: Colors.white)),
+        centerTitle: false,
+        backgroundColor: Colors.deepOrange,
         actions: [
           Padding(
             padding: const EdgeInsets.all(8.0),
@@ -74,7 +75,7 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.teal,
+        backgroundColor: Colors.deepOrange,
         child: const Icon(Icons.add, color: Colors.white),
         onPressed: () => openAddDialog(context),
       ),
@@ -227,7 +228,8 @@ class _HomePageState extends State<HomePage> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal,
+              backgroundColor: Colors.deepOrange,
+              foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
