@@ -44,7 +44,6 @@ class CrudService {
     );
   }
 
-  // Convenience: add without image (calls addItemWithImage with null)
   Future<void> addItem(String name, int quantity) async {
     await addItemWithImage(name, quantity, null);
   }
@@ -62,8 +61,6 @@ class CrudService {
     });
   }
 
-  // UPDATE with optional image_url: if `imageUrl` is non-null, include it in the
-  // update map; otherwise don't modify the existing `image_url` field.
   Future<void> updateItemWithImage(String id, String name, int quantity, String? imageUrl) {
     final Map<String, dynamic> updateMap = {
       'name': name,

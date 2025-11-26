@@ -271,7 +271,6 @@ class _HomePageState extends State<HomePage> {
   void openAddDialog(BuildContext context) {
     nameCtrl.clear();
     qtyCtrl.clear();
-    // Local temporary state for the dialog
     String? selectedImageUrl;
     bool isUploading = false;
 
@@ -407,7 +406,6 @@ class _HomePageState extends State<HomePage> {
     nameCtrl.text = data['name'] ?? '';
     qtyCtrl.text = (data['quantity'] ?? 0).toString();
 
-    // Local state: current or newly selected image url and uploading status
     String? selectedImageUrl = data['image_url'];
     bool isUploading = false;
 
