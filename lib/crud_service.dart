@@ -62,6 +62,19 @@ class CrudService {
     });
   }
 
+  // UPDATE with optional image_url: if `imageUrl` is non-null, include it in the
+  // update map; otherwise don't modify the existing `image_url` field.
+  Future<void> updateItemWithImage(String id, String name, int quantity, String? imageUrl) {
+    final Map<String, dynamic> updateMap = {
+      'name': name,
+      'quantity': quantity,
+    };
+    if (imageUrl != null) {
+      updateMap['image_url'] = imageUrl;
+    }
+    return items.doc(id).update(updateMap);
+  }
+
   // DELETE
   Future<void> deleteItem(String id) {
     return items.doc(id).delete();

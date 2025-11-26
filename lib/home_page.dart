@@ -407,64 +407,124 @@ class _HomePageState extends State<HomePage> {
     nameCtrl.text = data['name'] ?? '';
     qtyCtrl.text = (data['quantity'] ?? 0).toString();
 
+    // Local state: current or newly selected image url and uploading status
+    String? selectedImageUrl = data['image_url'];
+    bool isUploading = false;
+
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text("Edit item"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameCtrl,
-              style: const TextStyle(color: Colors.black87),
-              decoration: InputDecoration(
-                labelText: "Name",
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text("Edit item"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameCtrl,
+                style: const TextStyle(color: Colors.black87),
+                decoration: InputDecoration(
+                  labelText: "Name",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: qtyCtrl,
+                keyboardType: TextInputType.number,
+                style: const TextStyle(color: Colors.black87),
+                decoration: InputDecoration(
+                  labelText: "Quantity",
+                  labelStyle: const TextStyle(color: Colors.black54),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (selectedImageUrl != null) ...[
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: SizedBox(
+                    height: 80,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(selectedImageUrl!, fit: BoxFit.cover),
+                    ),
+                  ),
+                ),
+              ],
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  icon: isUploading
+                      ? const SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.upload_file, color: Colors.deepOrange),
+                  label: Text(
+                    isUploading ? 'Uploading...' : (selectedImageUrl == null ? 'Upload Image' : 'Change image'),
+                    style: const TextStyle(color: Colors.deepOrange),
+                  ),
+                  onPressed: isUploading
+                      ? null
+                      : () async {
+                          setDialogState(() => isUploading = true);
+                          try {
+                            final picked = await service.pickImageForAddItem();
+                            if (picked != null) {
+                              setDialogState(() {
+                                selectedImageUrl = picked.url;
+                              });
+                            }
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Upload error: ${e.toString()}')),
+                            );
+                          } finally {
+                            setDialogState(() => isUploading = false);
+                          }
+                        },
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              child: const Text("Cancel"),
+              onPressed: () => Navigator.pop(ctx),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: qtyCtrl,
-              keyboardType: TextInputType.number,
-              style: const TextStyle(color: Colors.black87),
-              decoration: InputDecoration(
-                labelText: "Quantity",
-                labelStyle: const TextStyle(color: Colors.black54),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
+              child: const Text("Update"),
+              onPressed: () async {
+                if (nameCtrl.text.isNotEmpty && qtyCtrl.text.isNotEmpty && !isUploading) {
+                  final qty = int.tryParse(qtyCtrl.text) ?? 0;
+                  try {
+                    await service.updateItemWithImage(item.id, nameCtrl.text, qty, selectedImageUrl);
+                    Navigator.pop(ctx);
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Update failed: ${e.toString()}')),
+                    );
+                  }
+                }
+              },
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            child: const Text("Cancel"),
-            onPressed: () => Navigator.pop(context),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text("Update"),
-            onPressed: () {
-              if (nameCtrl.text.isNotEmpty && qtyCtrl.text.isNotEmpty) {
-                final qty = int.tryParse(qtyCtrl.text) ?? 0;
-                service.updateItem(item.id, nameCtrl.text, qty);
-                Navigator.pop(context);
-              }
-            },
-          ),
-        ],
       ),
     );
   }
